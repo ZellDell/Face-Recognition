@@ -1,0 +1,329 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {% tailwind_css %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div
+      class="absolute flex w-full p-5 flex-row bg-white shadow-xl z-10 justify-between"
+    >
+      <div class="space-x-3 text-lg font-medium text-gray-600">
+        <a href="#" class="hover:text-gray-800 hover:bg-gray-100 p-2">Home</a>
+        <a href="#" class="hover:text-gray-800 hover:bg-gray-100 p-2"
+          >Students</a
+        >
+        <a href="#" class="hover:text-gray-800 hover:bg-gray-100 p-2"
+          >Attendance</a
+        >
+      </div>
+
+      <a
+        href="#"
+        class="text-lg font-medium text-gray-600 hover:text-red-600 hover:bg-gray-100 p-2"
+        >Logout</a
+      >
+    </div>
+    <div class="w-full h-screen bg-blue-100 flex justify-around items-center">
+      <div class="relative rounded-lg border-2 border-gray-400 overflow-hidden">
+        <video id="video" width="640" height="480" autoplay></video>
+        <canvas
+          id="overlay"
+          style="position: absolute; top: 0; left: 0"
+        ></canvas>
+      </div>
+      <div class="bg-zinc-50 h-3/4 w-2/5 py-5 rounded-md space-y-2">
+        <div>
+          <h1 class="text-3xl font-bold text-center text-gray-700">
+            Face Recognition
+          </h1>
+          <h4 class="text-sm text-gray-400 font-semibold text-center">
+            Attendance
+          </h4>
+        </div>
+        <div
+          id="faceCards"
+          class="mt-8 h-full flex flex-col items-center"
+        ></div>
+      </div>
+    </div>
+    <canvas id="canvas" style="display: none"></canvas>
+    <!-- Hidden canvas for capturing video frames -->
+
+    <!-- Script for display video cam -->
+    <script>
+      var video = document.getElementById("video");
+      var canvas = document.getElementById("canvas");
+      var context = canvas.getContext("2d");
+
+      var overlayCanvas = document.getElementById("overlay");
+      var overlayContext = overlayCanvas.getContext("2d");
+
+      navigator.mediaDevices
+        .getUserMedia({ video: true })
+        .then(function (stream) {
+          video.srcObject = stream;
+          video.play();
+          video.addEventListener("loadedmetadata", function () {
+            console.log(video.videoWidth, video.videoHeight);
+            overlayCanvas.width = video.videoWidth;
+            overlayCanvas.height = video.videoHeight;
+          });
+        })
+        .catch(function (error) {
+          console.error("Error accessing webcam: ", error);
+        });
+
+      setInterval(() => {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL("image/jpeg");
+
+        // Send captured frame to Django server via AJAX request
+        fetch("/process_frame/", {
+          method: "POST",
+          body: JSON.stringify({ image_data: imageData }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            // Process response from server (e.g., display recognized faces)
+            console.log(data.recognized_faces);
+
+            drawBoxes(data.response_data);
+            updateFaceCards(data.recognized_faces);
+          })
+          .catch((error) => {
+            console.error("Error processing frame:", error);
+          });
+      }, 500);
+
+      // Function to draw boxes around detected faces
+      function drawBoxes(faceCoordinates) {
+        overlayContext.clearRect(
+          0,
+          0,
+          overlayCanvas.width,
+          overlayCanvas.height
+        );
+        if (faceCoordinates.length > 0) {
+          faceCoordinates.forEach((coordinates) => {
+            const { top, right, bottom, left } = coordinates;
+
+            const boxWidth = right - left;
+            const boxHeight = bottom - top;
+
+            // Calculate the center of the detected face
+            const centerX = left + boxWidth / 2;
+            const centerY = top + boxHeight / 2;
+
+            // Calculate the top-left corner of the bounding box
+            const adjustedLeft = centerX - boxWidth / 2;
+            const adjustedTop = centerY - boxHeight / 2;
+
+            overlayContext.strokeStyle = "red";
+            overlayContext.lineWidth = 2;
+
+            // Draw the bounding box
+            overlayContext.strokeRect(
+              adjustedLeft,
+              adjustedTop,
+              boxWidth,
+              boxHeight
+            );
+          });
+        }
+      }
+
+      // Function to update face cards with recognized faces
+      function updateFaceCards(recognizedFaces) {
+        const faceCardsContainer = document.getElementById("faceCards");
+        faceCardsContainer.innerHTML = ""; // Clear existing cards
+
+        recognizedFaces.forEach((face) => {
+          const { image_path } = face;
+
+          const path = image_path.split("/")[1].replace(/\\/g, "/");
+          const pathElements = path.split("/");
+          const yrLvl = pathElements[pathElements.length - 2];
+
+          console.log(path + "/1.png");
+          const card = document.createElement("div");
+          card.classList.add(
+            "w-3/4",
+            "my-2",
+            "rounded-lg",
+            "drop-shadow-xl",
+            "overflow-hidden"
+          );
+
+          const headerDiv = document.createElement("div");
+          headerDiv.classList.add(
+            "bg-blue-800",
+            "flex",
+            "flex-row",
+            "flex-1",
+            "space-x-2",
+            "p-2"
+          );
+
+          const headerImg = document.createElement("img");
+          headerImg.src = "{% static 'assets/SMCTI-LOGO.png' %}";
+          headerImg.classList.add("w-16", "h-16", "m-2", "flex-2");
+
+          const schoolDiv = document.createElement("div");
+          schoolDiv.classList.add(
+            "flex-1",
+            "flex",
+            "flex-col",
+            "items-center",
+            "justify-end"
+          );
+
+          const schoolName = document.createElement("h1");
+          schoolName.classList.add("text-white", "text-base", "font-semibold");
+          schoolName.textContent = "ST. MARY'S COLLEGE OF TAGUM INC.";
+
+          const schoolAddress = document.createElement("h4");
+          schoolAddress.classList.add(
+            "text-blue-200",
+            "text-xs",
+            "font-medium"
+          );
+          schoolAddress.textContent = "Tagum City, Davao del Norte";
+          schoolDiv.appendChild(schoolName);
+          schoolDiv.appendChild(schoolAddress);
+
+          const yearDiv = document.createElement("div");
+          yearDiv.classList.add("flex", "flex-row", "items-center", "flex-2");
+
+          const SY = document.createElement("h1");
+          SY.classList.add(
+            "text-white",
+            "text-sm",
+            "font-semibold",
+            "bg-red-600",
+            "p-1"
+          );
+          SY.textContent = "SY";
+
+          const year = document.createElement("h4");
+          year.classList.add(
+            "text-sm",
+            "font-semibold",
+            "bg-yellow-400",
+            "p-1"
+          );
+          year.textContent = "2023-2024";
+          yearDiv.appendChild(SY);
+          yearDiv.appendChild(year);
+
+          const departmentDiv = document.createElement("div");
+          departmentDiv.classList.add(
+            "bg-purple-600",
+            "flex",
+            "flex-row",
+            "flex-1",
+            "justify-center"
+          );
+          const department = document.createElement("h1");
+          department.classList.add("text-white", "text-base", "font-bold");
+          department.textContent = "COLLEGE DEPARTMENT";
+
+          departmentDiv.appendChild(department);
+
+          headerDiv.appendChild(headerImg);
+
+          headerDiv.appendChild(schoolDiv);
+          headerDiv.appendChild(yearDiv);
+
+          // card.textContent = face; // Set the text content to the recognized face name
+
+          const contentDiv = document.createElement("div");
+          contentDiv.classList.add("p-4", "bg-white", "flex", "flex-row");
+
+          const details = document.createElement("div");
+          details.classList.add(
+            "flex-1",
+            "flex-col",
+            "items-start",
+            "space-y-1"
+          );
+
+          const nameLabel = document.createElement("h4");
+          nameLabel.classList.add("text-red-800", "text-sm", "font-light");
+          nameLabel.textContent = "STUDENT NAME";
+
+          const name = document.createElement("h1");
+          name.classList.add("text-gray-700", "text-lg", "font-bold");
+          name.textContent = face.name;
+
+          const courseLabel = document.createElement("h4");
+          courseLabel.classList.add("text-red-800", "text-sm", "font-light");
+          courseLabel.textContent = "COURSE";
+
+          const course = document.createElement("h1");
+          course.classList.add("text-gray-700", "text-lg", "font-semibold");
+          course.textContent = yrLvl;
+
+          const courseLogo = document.createElement("img");
+          courseLogo.src = "{% static 'assets/BSCS-LOGO.png' %}";
+          courseLogo.classList.add("w-10", "h-10");
+
+          details.appendChild(nameLabel);
+          details.appendChild(name);
+          details.appendChild(courseLabel);
+          details.appendChild(course);
+          details.appendChild(courseLogo);
+
+          const profileDiv = document.createElement("div");
+          profileDiv.classList.add(
+            "flex-1",
+            "flex",
+            "flex-col",
+            "items-end",
+
+            "space-y-3",
+            "items-end",
+            "py-3"
+          );
+
+          const profileImg = document.createElement("img");
+
+          profileImg.src = "/static/" + path + "/1.png";
+
+          profileImg.classList.add("w-20", "h-20");
+
+          const status = document.createElement("h1");
+          status.classList.add(
+            "bg-green-500",
+            "text-white",
+            "text-sm",
+            "font-semibold",
+            "p-1",
+            "px-2",
+            "rounded-lg",
+            "self-end"
+          );
+          status.textContent = "PRESENT";
+
+          profileDiv.appendChild(profileImg);
+          profileDiv.appendChild(status);
+
+          contentDiv.appendChild(details);
+          contentDiv.appendChild(profileDiv);
+
+          card.appendChild(headerDiv);
+          card.appendChild(departmentDiv);
+          card.appendChild(contentDiv);
+
+          faceCardsContainer.appendChild(card);
+        });
+      }
+    </script>
+  </body>
+</html>
