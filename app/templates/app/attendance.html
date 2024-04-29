@@ -1,0 +1,257 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {% tailwind_css %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Students</title>
+  </head>
+  <body>
+    <div
+      class="absolute flex w-full p-5 flex-row bg-white shadow-xl z-10 justify-between items-center"
+    >
+      <div class="space-x-3 text-lg font-medium text-gray-600">
+        <a
+          href="{% url 'home' %}"
+          class="hover:text-gray-800 hover:bg-gray-100 p-2"
+          >Home</a
+        >
+
+        {% if user.Fullname %}
+
+        <a
+          href="{% url 'attendance' %}"
+          class="hover:text-gray-800 hover:bg-gray-100 p-2"
+          >Attendance</a
+        >
+        {% endif %} {% if user.UserType == 'Administrator' %}
+        <a
+          href="{% url 'students' %}"
+          class="hover:text-gray-800 hover:bg-gray-100 p-2"
+          >Students</a
+        >
+
+        <a
+          href="{% url 'professors' %}"
+          class="hover:text-gray-800 hover:bg-gray-100 p-2"
+          >Proffesor</a
+        >
+        {% endif %}
+      </div>
+
+      {% if user.Fullname is None %}
+      <a
+        href="{% url 'login' %}"
+        class="text-lg font-medium text-gray-600 hover:text-gray-600 hover:bg-gray-100 p-2"
+        >Login</a
+      >
+      {% else %}
+      <a
+        href="{% url 'logout' %}"
+        class="text-lg font-medium text-gray-600 hover:text-red-600 hover:bg-gray-100 p-2"
+        >Logout</a
+      >
+      {% endif %}
+    </div>
+
+    <!-- Alerts -->
+    {% if error_message %}
+    <div
+      class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+      role="alert"
+    >
+      <strong class="font-bold">Error:</strong>
+      <span class="block sm:inline">{{ error_message }}</span>
+      <span class="absolute top-0 bottom-0 right-0 px-4 py-3">
+        <title>Close</title>X
+      </span>
+    </div>
+    {% endif %}
+
+    <!-- Alerts -->
+
+    <div
+      class="px-10 flex flex-col flex-1 h-screen py-32 relative overflow-hidden"
+    >
+      <div class="flex flex-row justify-between">
+        <h1 class="text-3xl font-bold text-gray-800">ATTENDANCE</h1>
+        <button
+          class="bg-green-500 p-3 font-bold text-white rounded-md hover:bg-green-600"
+          id="addStudentBtn"
+          onclick="exportTableToExcel('attendanceTable', 'attendance_data')">Export Excel</button>
+          
+      
+        </button>
+      </div>
+      <div class="p-6 px-0">
+        <table id="attendanceTable" class="mt-4 w-full min-w-max table-auto text-left">
+          <thead>
+            <tr>
+              <th
+                class="cursor-pointer border-y border-blue-gray-100 bg-blue-gray-50/50 p-4 transition-colors hover:bg-blue-gray-50"
+              >
+                <p
+                  class="antialiased font-sans text-sm text-blue-gray-900 flex items-center justify-between gap-2 font-normal leading-none opacity-70"
+                >
+                  Student
+                </p>
+              </th>
+              <th
+                class="cursor-pointer border-y border-blue-gray-100 bg-blue-gray-50/50 p-4 transition-colors hover:bg-blue-gray-50"
+              >
+                <p
+                  class="antialiased font-sans text-sm text-blue-gray-900 flex items-center justify-between gap-2 font-normal leading-none opacity-70"
+                >
+                  Time In
+                </p>
+              </th>
+              <th
+                class="cursor-pointer border-y border-blue-gray-100 bg-blue-gray-50/50 p-4 transition-colors hover:bg-blue-gray-50"
+              >
+                <p
+                  class="antialiased font-sans text-sm text-blue-gray-900 flex items-center justify-between gap-2 font-normal leading-none opacity-70"
+                >
+                  Schedule
+                </p>
+              </th>
+
+              <th
+                class="cursor-pointer border-y border-blue-gray-100 bg-blue-gray-50/50 p-4 transition-colors hover:bg-blue-gray-50"
+              >
+                <p
+                  class="antialiased font-sans text-sm text-blue-gray-900 flex items-center justify-between gap-2 font-normal leading-none opacity-70"
+                >
+                  Actions
+                </p>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for attendance_details in all_attendance_details %}
+            <tr>
+              <td class="p-4 border-b border-blue-gray-50">
+                <div class="flex items-center gap-3">
+                  <img
+                    src="{% static attendance_details.student.Image_path %}"
+                    alt="{{ student.Fullname }}"
+                    class="inline-block relative object-cover object-center !rounded-full w-9 h-9"
+                  />
+                  <div class="flex flex-col">
+                    <p
+                      class="block antialiased font-sans text-sm leading-normal text-blue-gray-900 font-normal"
+                    >
+                      {{ attendance_details.student.Fullname }}
+                    </p>
+                    <p
+                      class="block antialiased font-sans text-sm leading-normal text-blue-gray-900 font-normal opacity-70"
+                    >
+                      {{ attendance_details.student.year_level.YearLevel }}
+                    </p>
+                  </div>
+                </div>
+              </td>
+              <td class="p-4 border-b border-blue-gray-50">
+                <div class="flex items-center gap-3">
+                  <div class="flex flex-col">
+                    <p
+                      class="block antialiased font-sans text-sm leading-normal text-blue-gray-900 font-normal"
+                    >
+                      {{ attendance_details.Time_In }}
+                    </p>
+                    <p
+                      class="block antialiased font-sans text-sm leading-normal text-blue-gray-900 font-normal opacity-70"
+                    >
+                      {{ attendance_details.attendance.schedule.Weekday }}
+                    </p>
+                  </div>
+                </div>
+              </td>
+              <td class="p-4 border-b border-blue-gray-50">
+                <div class="flex items-center gap-3">
+                  <div class="flex flex-col">
+                    <p
+                      class="block antialiased font-sans text-sm leading-normal text-blue-gray-900 font-normal"
+                    >
+                      {{ attendance_details.attendance.date }}
+                    </p>
+                    <p
+                      class="block antialiased font-sans text-sm leading-normal text-blue-gray-900 font-normal opacity-70"
+                    >
+                      {{ attendance_details.attendance.schedule.Start_time }} |
+                      {{ attendance_details.attendance.schedule.End_time }}
+                    </p>
+                  </div>
+                </div>
+              </td>
+
+              <td class="p-4 border-b border-blue-gray-50">
+                
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Modal -->
+
+    <script type="text/javascript">
+      function exportTableToExcel(tableId, filename = ''){
+          var downloadLink;
+          var dataType = 'application/vnd.ms-excel';
+          var tableSelect = document.getElementById(tableId);
+          var tableHTML = '';
+  
+          // Exclude action column and photos
+          for (var i = 0; i < tableSelect.rows.length; i++) {
+              tableHTML += '<tr>';
+              for (var j = 0; j < tableSelect.rows[i].cells.length - 1; j++) { // Exclude last cell
+                  if (tableSelect.rows[i].cells[j].innerText !== 'Edit' && tableSelect.rows[i].cells[j].innerText !== 'Delete') {
+                      tableHTML += '<td>' + tableSelect.rows[i].cells[j].innerText + '</td>';
+                  }
+              }
+              tableHTML += '</tr>';
+          }
+  
+          // Create table header
+          var headerHTML = '<tr>';
+          for (var k = 0; k < tableSelect.rows[0].cells.length - 1; k++) {
+              if (tableSelect.rows[0].cells[k].innerText !== 'Actions') {
+                  headerHTML += '<th>' + tableSelect.rows[0].cells[k].innerText + '</th>';
+              }
+          }
+          headerHTML += '</tr>';
+  
+          // Combine header and table data
+          tableHTML = '<table>' + headerHTML + tableHTML + '</table>';
+  
+          // Specify file name
+          filename = filename ? filename + '.xls' : 'excel_data.xls';
+  
+          // Create download link element
+          downloadLink = document.createElement("a");
+  
+          document.body.appendChild(downloadLink);
+  
+          if (navigator.msSaveOrOpenBlob) {
+              var blob = new Blob(['\ufeff', tableHTML], {
+                  type: dataType
+              });
+              navigator.msSaveOrOpenBlob(blob, filename);
+          } else {
+              // Create a link to the file
+              downloadLink.href = 'data:' + dataType + ', ' + tableHTML;
+  
+              // Setting the file name
+              downloadLink.download = filename;
+  
+              //triggering the function
+              downloadLink.click();
+          }
+      }
+  </script>
+  
+  </body>
+</html>

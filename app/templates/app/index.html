@@ -9,27 +9,70 @@
   </head>
   <body>
     <div
-      class="absolute flex w-full p-5 flex-row bg-white shadow-xl z-10 justify-between"
+      class="absolute flex w-full p-5 flex-row bg-white shadow-xl z-10 justify-between items-center"
     >
+
       <div class="space-x-3 text-lg font-medium text-gray-600">
-        <a href="#" class="hover:text-gray-800 hover:bg-gray-100 p-2">Home</a>
-        <a href="#" class="hover:text-gray-800 hover:bg-gray-100 p-2"
-          >Students</a
-        >
-        <a href="#" class="hover:text-gray-800 hover:bg-gray-100 p-2"
+
+       
+        <a href="{% url 'home' %}" class="hover:text-gray-800 hover:bg-gray-100 p-2">Home</a>
+
+        {% if user.Fullname %}
+        
+        <a href="{% url 'attendance' %}" class="hover:text-gray-800 hover:bg-gray-100 p-2"
           >Attendance</a
         >
+        {% endif %}
+
+        {% if user.UserType == 'Administrator' %}
+        <a href="{% url 'students' %}" class="hover:text-gray-800 hover:bg-gray-100 p-2"
+          >Students</a
+        >
+
+        <a href="{% url 'professors' %}" class="hover:text-gray-800 hover:bg-gray-100 p-2"
+          >Proffesor</a
+        >
+        {% endif %}
       </div>
 
+      {% if user.Fullname is None %}
       <a
-        href="#"
+        href="{% url 'login' %}"
+        class="text-lg font-medium text-gray-600 hover:text-gray-600 hover:bg-gray-100 p-2"
+        >Login</a>
+      {% else %}
+      <a
+        href="{% url 'logout' %}"
         class="text-lg font-medium text-gray-600 hover:text-red-600 hover:bg-gray-100 p-2"
-        >Logout</a
-      >
+        >Logout</a>
+      {% endif %}
     </div>
-    <div class="w-full h-screen bg-blue-100 flex justify-around items-center">
+    <div class="w-full h-screen bg-blue-100 flex justify-around items-center relative">
+
+      <!-- Loading -->
+      <div id="activityIndicator" class="absolute bg-white bg-opacity-80 z-10 h-full w-full flex items-center justify-center hidden">
+        <div class="flex items-center">
+          <span class="text-3xl mr-4">Loading</span>
+          <div class="border-gray-300 h-20 w-20 animate-spin rounded-full border-8 border-t-blue-600" ></div>
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Loading... -->
+
+
       <div class="relative rounded-lg border-2 border-gray-400 overflow-hidden">
-        <video id="video" width="640" height="480" autoplay></video>
+        <video
+          id="video"
+          width="640"
+          height="480"
+          autoplay
+          class="w-full h-full"
+        ></video>
         <canvas
           id="overlay"
           style="position: absolute; top: 0; left: 0"
@@ -51,6 +94,7 @@
       </div>
     </div>
     <canvas id="canvas" style="display: none"></canvas>
+    <input type="hidden" id="static-url" value="{% static '' %}" />
     <!-- Hidden canvas for capturing video frames -->
 
     <!-- Script for display video cam -->
@@ -61,6 +105,22 @@
 
       var overlayCanvas = document.getElementById("overlay");
       var overlayContext = overlayCanvas.getContext("2d");
+
+
+      // Define a variable to track whether attendance is checked
+      let processingAttendance  = false;
+
+      // Function to show the "Attendance Checked" overlay
+      function showLoadingIndicator() {
+          const attendanceCheckedOverlay = document.getElementById("activityIndicator");
+          attendanceCheckedOverlay.classList.remove("hidden");
+      }
+
+      // Function to hide the "Attendance Checked" overlay
+      function hideLoadingIndicator() {
+          const attendanceCheckedOverlay = document.getElementById("activityIndicator");
+          attendanceCheckedOverlay.classList.add("hidden");
+}
 
       navigator.mediaDevices
         .getUserMedia({ video: true })
@@ -77,7 +137,8 @@
           console.error("Error accessing webcam: ", error);
         });
 
-      setInterval(() => {
+      if(!processingAttendance){
+        setInterval(() => {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageData = canvas.toDataURL("image/jpeg");
 
@@ -90,17 +151,25 @@
           },
         })
           .then((response) => response.json())
-          .then((data) => {
+          .then(async (data) => {
             // Process response from server (e.g., display recognized faces)
             console.log(data.recognized_faces);
 
             drawBoxes(data.response_data);
             updateFaceCards(data.recognized_faces);
+
+
+            checkAttendance(data.recognized_faces);
+
           })
           .catch((error) => {
             console.error("Error processing frame:", error);
           });
-      }, 500);
+      }, 1000);
+
+
+      }
+      
 
       // Function to draw boxes around detected faces
       function drawBoxes(faceCoordinates) {
@@ -125,7 +194,7 @@
             const adjustedLeft = centerX - boxWidth / 2;
             const adjustedTop = centerY - boxHeight / 2;
 
-            overlayContext.strokeStyle = "red";
+            overlayContext.strokeStyle = "blue";
             overlayContext.lineWidth = 2;
 
             // Draw the bounding box
@@ -139,6 +208,7 @@
         }
       }
 
+      const staticUrl = document.getElementById("static-url").value;
       // Function to update face cards with recognized faces
       function updateFaceCards(recognizedFaces) {
         const faceCardsContainer = document.getElementById("faceCards");
@@ -146,19 +216,30 @@
 
         recognizedFaces.forEach((face) => {
           const { image_path } = face;
+          face.isReal = JSON.parse(face.isReal);
+          const { isReal } = face;
+          const { isPresent } = face;
 
-          const path = image_path.split("/")[1].replace(/\\/g, "/");
+          const path = image_path.replace(/\\/g, "/");
           const pathElements = path.split("/");
+
+          pathElements.shift();
+
+          newPath = pathElements.join("/");
+
+          const profileImgSrc = staticUrl + newPath + "/1.png";
+
           const yrLvl = pathElements[pathElements.length - 2];
 
-          console.log(path + "/1.png");
           const card = document.createElement("div");
           card.classList.add(
             "w-3/4",
             "my-2",
             "rounded-lg",
             "drop-shadow-xl",
-            "overflow-hidden"
+            "overflow-hidden",
+            "border-2",
+            isReal ? "border-green-500" : "border-red-500"
           );
 
           const headerDiv = document.createElement("div");
@@ -294,13 +375,13 @@
 
           const profileImg = document.createElement("img");
 
-          profileImg.src = "/static/" + path + "/1.png";
+          profileImg.src = profileImgSrc;
 
           profileImg.classList.add("w-20", "h-20");
 
           const status = document.createElement("h1");
           status.classList.add(
-            "bg-green-500",
+            isReal == true ? "bg-green-500" : "bg-red-500",
             "text-white",
             "text-sm",
             "font-semibold",
@@ -309,7 +390,7 @@
             "rounded-lg",
             "self-end"
           );
-          status.textContent = "PRESENT";
+          status.textContent = isPresent ? "ALREADY PRESENT" : isReal ? "REAL" : "FAKE";
 
           profileDiv.appendChild(profileImg);
           profileDiv.appendChild(status);
@@ -324,6 +405,48 @@
           faceCardsContainer.appendChild(card);
         });
       }
+    
+    
+      function checkAttendance(recognized_faces){
+        
+
+        recognized_faces.forEach(async (face) => {
+          
+
+          
+        if(face && !processingAttendance && !face.isPresent && face.isReal){
+          processingAttendance = true;
+          showLoadingIndicator();
+          await fetch("/check_attendance/", {
+            method: "POST",
+            body: JSON.stringify({ face }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+          })
+            .then((response) => response.json())
+            .then(async (data) => {
+              if(data.success){
+                hideLoadingIndicator();
+              processingAttendance = false;
+              }
+              console.log(data);
+              
+            })
+            .catch((error) => {
+              console.error("Error processing frame:", error);
+              hideLoadingIndicator();
+            });
+        }
+
+
+
+        });
+
+        
+      }
+    
+    
     </script>
   </body>
 </html>

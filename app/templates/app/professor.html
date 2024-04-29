@@ -1,0 +1,471 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {% tailwind_css %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Students</title>
+  </head>
+  <body>
+    <div
+      class="absolute flex w-full p-5 flex-row bg-white shadow-xl z-10 justify-between items-center"
+    >
+      <div class="space-x-3 text-lg font-medium text-gray-600">
+        <a
+          href="{% url 'home' %}"
+          class="hover:text-gray-800 hover:bg-gray-100 p-2"
+          >Home</a
+        >
+
+        {% if user.Fullname %}
+
+        <a
+          href="{% url 'attendance' %}"
+          class="hover:text-gray-800 hover:bg-gray-100 p-2"
+          >Attendance</a
+        >
+        {% endif %} {% if user.UserType == 'Administrator' %}
+        <a
+          href="{% url 'students' %}"
+          class="hover:text-gray-800 hover:bg-gray-100 p-2"
+          >Students</a
+        >
+
+        <a
+          href="{% url 'professors' %}"
+          class="hover:text-gray-800 hover:bg-gray-100 p-2"
+          >Proffesor</a
+        >
+        {% endif %}
+      </div>
+
+      {% if user.Fullname is None %}
+      <a
+        href="{% url 'login' %}"
+        class="text-lg font-medium text-gray-600 hover:text-gray-600 hover:bg-gray-100 p-2"
+        >Login</a
+      >
+      {% else %}
+      <a
+        href="{% url 'logout' %}"
+        class="text-lg font-medium text-gray-600 hover:text-red-600 hover:bg-gray-100 p-2"
+        >Logout</a
+      >
+      {% endif %}
+    </div>
+
+    <!-- Alerts -->
+    {% if error_message %}
+    <div
+      class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+      role="alert"
+    >
+      <strong class="font-bold">Error:</strong>
+      <span class="block sm:inline">{{ error_message }}</span>
+      <span class="absolute top-0 bottom-0 right-0 px-4 py-3">
+        <title>Close</title>X
+      </span>
+    </div>
+    {% endif %}
+
+    <!-- Alerts -->
+
+    <div
+      class="px-10 flex flex-col flex-1 h-screen py-32 relative overflow-hidden"
+    >
+      <div class="flex flex-row justify-between">
+        <h1 class="text-3xl font-bold text-gray-800">PROFESSORS</h1>
+        <button
+          id="addStudentBtn"
+          onclick="openModal('addProfessorModal')"
+          class="bg-blue-500 p-3 font-bold text-white rounded-md hover:bg-blue-700"
+        >
+          Add Professor
+        </button>
+      </div>
+      <div class="p-6 px-0">
+        <table class="mt-4 w-full min-w-max table-auto text-left">
+          <thead>
+            <tr>
+              <th
+                class="cursor-pointer border-y border-blue-gray-100 bg-blue-gray-50/50 p-4 transition-colors hover:bg-blue-gray-50"
+              >
+                <p
+                  class="antialiased font-sans text-sm text-blue-gray-900 flex items-center justify-between gap-2 font-normal leading-none opacity-70"
+                >
+                  Student
+                </p>
+              </th>
+
+              <th
+                class="cursor-pointer border-y border-blue-gray-100 bg-blue-gray-50/50 p-4 transition-colors hover:bg-blue-gray-50"
+              >
+                <p
+                  class="antialiased font-sans text-sm text-blue-gray-900 flex items-center justify-between gap-2 font-normal leading-none opacity-70"
+                >
+                  Actions
+                </p>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for account in accounts %}
+            <tr>
+              <td class="p-4 border-b border-blue-gray-50">
+                <div class="flex items-center gap-3">
+                  <div class="flex flex-col">
+                    <p
+                      class="block antialiased font-sans leading-normal text-blue-gray-900 text-2xl text-gray-800 font-bold"
+                    >
+                      {{ account.Fullname }}
+                    </p>
+                    <p
+                      class="block antialiased font-sans text-base leading-normal text-blue-gray-900 font-normal opacity-70"
+                    >
+                      {{ account.Username }}
+                    </p>
+                  </div>
+                </div>
+              </td>
+
+              <td class="p-4 border-b border-blue-gray-50 space-x-5">
+                <button
+                  onclick="addSubject('{{ account.AccountID }}')"
+                  class="bg-gray-700 px-20 text-white hover:bg-gray-900 relative align-middle select-none font-sans font-medium text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none w-10 max-w-[40px] h-10 max-h-[40px] rounded-lg text-xs text-blue-gray-500 hover:bg-blue-gray-500/10 active:bg-blue-gray-500/30"
+                  type="button"
+                >
+                  <span
+                    class="absolute top-1/2 left-1/2 transform -translate-y-1/2 -translate-x-1/2"
+                  >
+                    Add Subject
+                  </span>
+                </button>
+                <button
+                  onclick="deleteProfessor('{{ account.AccountID }}')"
+                  class="bg-red-500 px-28 hover:bg-red-700 text-white relative align-middle select-none font-sans font-medium text-center uppercase transition-all disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none w-10 max-w-[40px] h-10 max-h-[40px] rounded-lg text-xs text-blue-gray-500 hover:bg-blue-gray-500/10 active:bg-blue-gray-500/30"
+                  type="button"
+                >
+                  <span
+                    class="absolute top-1/2 left-1/2 transform -translate-y-1/2 -translate-x-1/2"
+                  >
+                    Delete Account
+                  </span>
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div
+      id="addProfessorModal"
+      class="fixed hidden z-50 inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full px-4"
+    >
+      <div
+        class="relative top-40 mx-auto shadow-xl rounded-md bg-white max-w-md"
+      >
+        <div class="flex justify-end p-2">
+          <button
+            onclick="closeModal('addProfessorModal')"
+            type="button"
+            class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="p-6 pt-0">
+          <h3 class="text-xl font-normal text-gray-500 mt-5 mb-6">
+            Add a Professor
+          </h3>
+          <form
+            id="AddProfessorForm"
+            enctype="multipart/form-data"
+            method="POST"
+          >
+            {% csrf_token %}
+            <div class="mb-4">
+              <label
+                for="fullname"
+                class="block text-sm font-medium text-gray-700"
+                >Full Name</label
+              >
+              <input
+                type="text"
+                id="fullname"
+                name="fullname"
+                placeholder="e.g. John Doe"
+                required
+                class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+            <div class="mb-4">
+              <label
+                for="username"
+                class="block text-sm font-medium text-gray-700"
+                >Username</label
+              >
+              <input
+                type="text"
+                id="username"
+                name="username"
+                placeholder="e.g. john_doe"
+                required
+                class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+            <div class="mb-4">
+              <label
+                for="password"
+                class="block text-sm font-medium text-gray-700"
+                >Password</label
+              >
+              <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+            <input
+              type="hidden"
+              id="AccountID-"
+              name="{{ account.AccountID }}-"
+              value=""
+            />
+            <input type="hidden" id="action" name="action" value="create" />
+            <div class="flex justify-end">
+              <button
+                id="submitBtn"
+                type="submit"
+                class="text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-300 font-medium rounded-lg text-base inline-flex items-center px-4 py-2"
+              >
+                Submit
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Subject Modal -->
+    <div
+      id="addSubjectModal"
+      class="fixed hidden z-50 inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full px-4"
+    >
+      <div
+        class="relative top-40 mx-auto shadow-xl rounded-md bg-white max-w-md"
+      >
+        <div class="flex justify-end p-2">
+          <button
+            onclick="closeModal('addSubjectModal')"
+            type="button"
+            class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="p-6 pt-0">
+          <h3 class="text-xl font-normal text-gray-500 mt-5 mb-6">
+            Add a Subject
+          </h3>
+          <form
+            id="AddSubjectForm"
+            enctype="multipart/form-data"
+            method="POST"
+            action="{% url 'add_subject' %}"
+          >
+            {% csrf_token %}
+            <div class="mb-4">
+              <label
+                for="subjectName"
+                class="block text-sm font-medium text-gray-700"
+                >Subject Name</label
+              >
+              <input
+                type="text"
+                id="subjectName"
+                name="subjectName"
+                placeholder="e.g. Mathematics"
+                required
+                class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+            <div class="mb-4">
+              <label
+                for="weekday"
+                class="block text-sm font-medium text-gray-700"
+                >Weekday</label
+              >
+              <select
+                id="weekday"
+                name="weekday"
+                required
+                class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+              >
+                <option value="Monday">Monday</option>
+                <option value="Tuesday">Tuesday</option>
+                <option value="Wednesday">Wednesday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Friday">Friday</option>
+                <option value="Saturday">Saturday</option>
+                <option value="Sunday">Sunday</option>
+              </select>
+            </div>
+            <div class="mb-4">
+              <label
+                for="startTime"
+                class="block text-sm font-medium text-gray-700"
+                >Start Time</label
+              >
+              <input
+                type="time"
+                id="startTime"
+                name="startTime"
+                required
+                class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+            <div class="mb-4">
+              <label
+                for="endTime"
+                class="block text-sm font-medium text-gray-700"
+                >End Time</label
+              >
+              <input
+                type="time"
+                id="endTime"
+                name="endTime"
+                required
+                class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+            <input
+              type="hidden"
+              id="SubjectID"
+              name="{{ subject.SubjectID }}"
+              value=""
+            />
+            <input type="hidden" id="AccountID" name="AccountID" value="" />
+            <input type="hidden" id="action" name="action" value="create" />
+            <div class="flex justify-end">
+              <button
+                id="submitSubjectBtn"
+                type="submit"
+                class="text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-300 font-medium rounded-lg text-base inline-flex items-center px-4 py-2"
+              >
+                Submit
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      window.openModal = function (modalId) {
+        document.getElementById(modalId).style.display = "block";
+        document
+          .getElementsByTagName("body")[0]
+          .classList.add("overflow-y-hidden");
+      };
+
+      window.closeModal = function (modalId) {
+        document.getElementById(modalId).style.display = "none";
+        document
+          .getElementsByTagName("body")[0]
+          .classList.remove("overflow-y-hidden");
+
+        clearFields();
+      };
+
+      // Close all modals when press ESC
+      document.onkeydown = function (event) {
+        event = event || window.event;
+        if (event.keyCode === 27) {
+          document
+            .getElementsByTagName("body")[0]
+            .classList.remove("overflow-y-hidden");
+          let modals = document.getElementsByClassName("modal");
+          Array.prototype.slice.call(modals).forEach((i) => {
+            i.style.display = "none";
+          });
+        }
+      };
+
+      const clearFields = () => {
+        document.getElementById("fullname").value = "";
+        document.getElementById("yearlevel").value = "";
+        document.getElementById("studentImage").value = "";
+        document.getElementById("previewImage").src = "#";
+        document.getElementById("previewImage").style.display = "none";
+      };
+
+      function deleteProfessor(AccountID) {
+        if (confirm("Are you sure you want to delete this Account?")) {
+          // Construct the request parameters
+
+          const requestOptions = {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+
+              // You may need to include CSRF token if required by your Django setup
+              // "X-CSRFToken": getCSRFToken(),
+            },
+            body: JSON.stringify({ AccountID: AccountID }),
+          };
+
+          // Send the fetch request
+          fetch("/delete_professor/", requestOptions)
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Network response was not ok");
+              }
+              // Reload the page after successful deletion
+              location.reload();
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+            });
+        }
+      }
+
+      function addSubject(AccountID) {
+        console.log(AccountID);
+        openModal("addSubjectModal");
+
+        document.getElementById("action").value = "update";
+        document.getElementById("AccountID").value = AccountID;
+      }
+    </script>
+  </body>
+</html>
